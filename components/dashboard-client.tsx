@@ -118,17 +118,17 @@ export default function DashboardClient({ user, profile, wallet }: DashboardClie
 
   const fetchCryptoData = async () => {
     try {
-      const response = await fetch("/api/crypto/market-data")
+      const [tickersResponse, globalResponse] = await Promise.all([
+        fetch("https://api.coinlore.net/api/tickers/?start=0&limit=100"),
+        fetch("https://api.coinlore.net/api/global/"),
+      ])
 
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`)
-      }
+      const tickersData = await tickersResponse.json()
+      const globalData = await globalResponse.json()
 
-      const responseData = await response.json()
-
-      const allCryptos = responseData.data || []
+      const allCryptos = tickersData.data || []
       setCryptos(allCryptos)
-      setGlobalStats(responseData.global || null)
+      setGlobalStats(globalData[0] || null)
 
       // Calculate top gainers and losers
       const sorted = [...allCryptos].sort((a, b) => {
@@ -136,8 +136,6 @@ export default function DashboardClient({ user, profile, wallet }: DashboardClie
       })
       setTopGainers(sorted.slice(0, 5))
       setTopLosers(sorted.slice(-5).reverse())
-
-      console.log("[v0] Successfully loaded crypto data")
     } catch (error) {
       console.error("[v0] Error fetching crypto data:", error)
     } finally {
